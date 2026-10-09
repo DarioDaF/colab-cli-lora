@@ -1,0 +1,19 @@
+[project]
+name = "apertus-hack--qlora0"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "python-dotenv>=1.2.4",
+    "torch>=2.14.0",
+    "peft>=0.21.0",
+    "bitsandbytes>=0.50.0", # QLORA CUDA ONLY
+    "transformers>=5.19.0",
+    "jinja2>=3.1.0",
+    #"causal-conv1d>=1.7.0", # NO WHEEL (VERY SLOW BUILD)
+    "flash-linear-attention>=0.5.2",
+    "hf-xet>=1.7.0",
+    "torch_xla[tpu]; sys_platform == 'linux'", # TPU ONLY
+]
+
+[tool.uv]
+package = false

@@ -1,0 +1,43 @@
+#!/usr/bin/env sh
+
+# Usage: `colab-rsync SESSION_NAME RSYNC_FROM RSYNC_TO [KEY_FILE]`
+#   To point to remote folders use `remote:/path...`
+
+set -eu
+
+SESSION_NAME="$1"
+RSYNC_FROM="$2"
+RSYNC_TO="$3"
+if [ -n "${4-}" ]; then
+    KEY_FILE="$4"
+else
+    tmp=$(mktemp -d)
+    trap 'rm -rf -- "$tmp"' EXIT
+
+    KEY_FILE="$tmp/id"
+    ssh-keygen -t ed25519 -N "" -f "$KEY_FILE" > /dev/null
+    chmod 700 "$KEY_FILE"
+fi
+
+SSH_HOST=root@colab-runtime
+
+replace_prefix() {
+    case "$1" in
+        "$2"*) echo "$3${1#"$2"}" ;;
+        *) echo "$1" ;;
+    esac
+}
+RSYNC_FROM=$(replace_prefix "$RSYNC_FROM" "remote:" "$SSH_HOST:")
+RSYNC_TO=$(replace_prefix "$RSYNC_TO" "remote:" "$SSH_HOST:")
+
+PROXY="colab ssh --proxy-mode -s \"$SESSION_NAME\" -i \"$KEY_FILE\""
+SSHCMD="ssh -F /dev/null -o \"ProxyCommand=$PROXY\" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -i \"$KEY_FILE\""
+
+rsync \
+    -avz \
+    --partial \
+    --timeout=60 \
+    --filter=':- .rsyncignore' \
+    -e "$SSHCMD" \
+    "$RSYNC_FROM" \
+    "$RSYNC_TO"
